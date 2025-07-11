@@ -1,0 +1,111 @@
+name: "Claude Docker Action"
+description: "Docker-based Claude Code action for GitHub workflows with environment variable configuration"
+branding:
+  icon: "at-sign"
+  color: "orange"
+
+inputs:
+  trigger_phrase:
+    description: "The trigger phrase to look for in comments or issue body"
+    required: false
+    default: "@claude"
+  assignee_trigger:
+    description: "The assignee username that triggers the action (e.g. @claude)"
+    required: false
+  label_trigger:
+    description: "The label that triggers the action (e.g. claude)"
+    required: false
+    default: "claude"
+  base_branch:
+    description: "The branch to use as the base/source when creating new branches (defaults to repository default branch)"
+    required: false
+  branch_prefix:
+    description: "The prefix to use for Claude branches (defaults to 'claude/', use 'claude-' for dash format)"
+    required: false
+    default: "claude/"
+
+  # Claude Code configuration
+  model:
+    description: "Model to use (provider-specific format required for Bedrock/Vertex)"
+    required: false
+  anthropic_model:
+    description: "DEPRECATED: Use 'model' instead. Model to use (provider-specific format required for Bedrock/Vertex)"
+    required: false
+  fallback_model:
+    description: "Enable automatic fallback to specified model when primary model is unavailable"
+    required: false
+  allowed_tools:
+    description: "Additional tools for Claude to use (the base GitHub tools will always be included)"
+    required: false
+    default: ""
+  disallowed_tools:
+    description: "Tools that Claude should never use"
+    required: false
+    default: ""
+  custom_instructions:
+    description: "Additional custom instructions to include in the prompt for Claude"
+    required: false
+    default: ""
+  direct_prompt:
+    description: "Direct instruction for Claude (bypasses normal trigger detection)"
+    required: false
+    default: ""
+  mcp_config:
+    description: "Additional MCP configuration (JSON string) that merges with the built-in GitHub MCP servers"
+    required: false
+  additional_permissions:
+    description: "Additional permissions to enable. Currently supports 'actions: read' for viewing workflow results"
+    required: false
+    default: ""
+  claude_env:
+    description: "Custom environment variables to pass to Claude Code execution (YAML format)"
+    required: false
+    default: ""
+
+  # Auth configuration
+  anthropic_api_key:
+    description: "Anthropic API key (required for direct API, not needed for Bedrock/Vertex)"
+    required: false
+  claude_code_oauth_token:
+    description: "Claude Code OAuth token (alternative to anthropic_api_key)"
+    required: false
+  github_token:
+    description: "GitHub token with repo and pull request permissions (optional if using GitHub App)"
+    required: false
+  use_bedrock:
+    description: "Use Amazon Bedrock with OIDC authentication instead of direct Anthropic API"
+    required: false
+    default: "false"
+  use_vertex:
+    description: "Use Google Vertex AI with OIDC authentication instead of direct Anthropic API"
+    required: false
+    default: "false"
+
+  max_turns:
+    description: "Maximum number of conversation turns"
+    required: false
+    default: ""
+  timeout_minutes:
+    description: "Timeout in minutes for execution"
+    required: false
+    default: "30"
+  use_sticky_comment:
+    description: "Use just one comment to deliver issue/PR comments"
+    required: false
+    default: "false"
+  use_commit_signing:
+    description: "Enable commit signing using GitHub's commit signature verification. When false, Claude uses standard git commands"
+    required: false
+    default: "false"
+
+outputs:
+  execution_file:
+    description: "Path to the Claude Code execution output file"
+    value: ${{ steps.claude.outputs.execution_file }}
+  conclusion:
+    description: "Execution status of Claude Code ('success' or 'failure')"
+    value: ${{ steps.claude.outputs.conclusion }}
+
+runs:
+  using: "docker"
+  image: "Dockerfile"

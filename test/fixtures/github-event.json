@@ -1,0 +1,27 @@
+{
+  "action": "created",
+  "issue": {
+    "number": 123,
+    "title": "Test issue",
+    "body": "@claude please help with this test issue",
+    "user": {
+      "login": "testuser"
+    },
+    "pull_request": null
+  },
+  "comment": {
+    "id": 456,
+    "body": "@claude please help with this test issue",
+    "user": {
+      "login": "testuser"
+    }
+  },
+  "repository": {
+    "name": "test-repo",
+    "full_name": "testowner/test-repo",
+    "owner": {
+      "login": "testowner"
+    },
+    "default_branch": "main"
+  }
+}
