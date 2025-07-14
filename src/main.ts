@@ -16,6 +16,7 @@ import { setupClaudeAuthentication } from './claude/auth';
 import { createPromptFile } from './claude/prompt';
 import { runClaude } from './claude/runner';
 import { prepareMcpConfig } from './mcp/install-mcp-server';
+import { setupClaudeCodeSettings } from './claude/settings';
 
 async function main() {
   try {
@@ -109,16 +110,20 @@ async function main() {
       context: githubContext,
     });
 
-    // Step 12: Run Claude Code
-    logger.info('Step 12: Running Claude Code...');
+    // Step 12: Set up Claude Code settings
+    logger.info('Step 12: Setting up Claude Code settings...');
+    await setupClaudeCodeSettings();
+
+    // Step 13: Run Claude Code
+    logger.info('Step 13: Running Claude Code...');
     const claudeResult = await runClaude({
       promptPath,
       config,
       mcpConfig,
     });
 
-    // Step 13: Set outputs
-    logger.info('Step 13: Setting action outputs...');
+    // Step 14: Set outputs
+    logger.info('Step 14: Setting action outputs...');
     if (claudeResult.success) {
       core.setOutput('conclusion', 'success');
       if (claudeResult.executionFile) {
