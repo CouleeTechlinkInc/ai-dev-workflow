@@ -5,7 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { GITHUB_API_URL } from "../github/api/config";
 import { Octokit } from "@octokit/rest";
-import { updateClaudeComment } from "../github/operations/comments/update-claude-comment";
+import { updateComment } from "../github/operations";
 
 // Get repository information from environment variables
 const REPO_OWNER = process.env.REPO_OWNER;
@@ -51,22 +51,27 @@ server.tool(
         baseUrl: GITHUB_API_URL,
       });
 
-      const isPullRequestReviewComment =
-        eventName === "pull_request_review_comment";
+      // Create context object for the updateComment function
+      const context = {
+        repository: {
+          owner,
+          repo,
+          full_name: `${owner}/${repo}`,
+        },
+        eventName: eventName || "",
+        entityNumber: 0, // Not needed for comment update
+        isPR: eventName === "pull_request_review_comment",
+        actor: "",
+        payload: {},
+      };
 
-      const result = await updateClaudeComment(octokit, {
-        owner,
-        repo,
-        commentId,
-        body,
-        isPullRequestReviewComment,
-      });
+      await updateComment(octokit, context, commentId, body);
 
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(result, null, 2),
+            text: `Successfully updated comment ${commentId}`,
           },
         ],
       };

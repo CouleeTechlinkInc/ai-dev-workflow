@@ -7,7 +7,7 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import fetch from "node-fetch";
 import { GITHUB_API_URL } from "../github/api/config";
-import { retryWithBackoff } from "../utils/retry";
+import { retryWithBackoff } from "../github/auth";
 
 type GitHubRef = {
   object: {

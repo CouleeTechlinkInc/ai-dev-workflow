@@ -58,7 +58,7 @@ async function exchangeForAppToken(oidcToken: string): Promise<string> {
   return appToken;
 }
 
-async function retryWithBackoff<T>(
+export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
   baseDelay: number = 1000
