@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 // GitHub Comment MCP Server - Minimal server that only provides comment update functionality
+
+// Add debugging to see if the server starts
+console.error("[GitHub Comment Server] Starting server...");
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { GITHUB_API_URL } from "../github/api/config";
 import { Octokit } from "@octokit/rest";
 import { updateComment } from "../github/operations";
+
+console.error("[GitHub Comment Server] Imports successful");
 
 // Get repository information from environment variables
 const REPO_OWNER = process.env.REPO_OWNER;
@@ -93,11 +99,20 @@ server.tool(
 );
 
 async function runServer() {
+  console.error("[GitHub Comment Server] Creating transport...");
   const transport = new StdioServerTransport();
+  
+  console.error("[GitHub Comment Server] Connecting to transport...");
   await server.connect(transport);
+  
+  console.error("[GitHub Comment Server] Server connected successfully");
   process.on("exit", () => {
+    console.error("[GitHub Comment Server] Server shutting down...");
     server.close();
   });
 }
 
-runServer().catch(console.error);
+console.error("[GitHub Comment Server] Starting runServer...");
+runServer().catch((error) => {
+  console.error("[GitHub Comment Server] Error starting server:", error);
+});
