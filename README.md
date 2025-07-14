@@ -171,3 +171,4 @@ This project follows the same licensing as the original Claude Code Action.# Tes
 # Test Docker Hub push
 # Fix Docker Hub repository
 # Test Docker Hub auth
+# Test standard docker login
