@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import { GITHUB_API_URL } from "../github/api/config";
-import type { ParsedGitHubContext } from "../github/context";
+import type { GitHubContext } from "../github/events";
 import { Octokit } from "@octokit/rest";
 
 type PrepareConfigParams = {
@@ -11,7 +11,7 @@ type PrepareConfigParams = {
   additionalMcpConfig?: string;
   claudeCommentId?: string;
   allowedTools: string[];
-  context: ParsedGitHubContext;
+  context: GitHubContext;
 };
 
 async function checkActionsReadPermission(
@@ -60,12 +60,6 @@ export async function prepareMcpConfig(
     context,
   } = params;
   try {
-    const allowedToolsList = allowedTools || [];
-
-    const hasGitHubMcpTools = allowedToolsList.some((tool) =>
-      tool.startsWith("mcp__github__"),
-    );
-
     const baseMcpConfig: { mcpServers: Record<string, unknown> } = {
       mcpServers: {},
     };
@@ -86,80 +80,6 @@ export async function prepareMcpConfig(
         GITHUB_API_URL: GITHUB_API_URL,
       },
     };
-
-    // Include file ops server when commit signing is enabled
-    if (context.inputs.useCommitSigning) {
-      baseMcpConfig.mcpServers.github_file_ops = {
-        command: "bun",
-        args: [
-          "run",
-          `${process.env.GITHUB_ACTION_PATH}/src/mcp/github-file-ops-server.ts`,
-        ],
-        env: {
-          GITHUB_TOKEN: githubToken,
-          REPO_OWNER: owner,
-          REPO_NAME: repo,
-          BRANCH_NAME: branch,
-          REPO_DIR: process.env.GITHUB_WORKSPACE || process.cwd(),
-          GITHUB_EVENT_NAME: process.env.GITHUB_EVENT_NAME || "",
-          IS_PR: process.env.IS_PR || "false",
-          GITHUB_API_URL: GITHUB_API_URL,
-        },
-      };
-    }
-
-    // Only add CI server if we have actions:read permission and we're in a PR context
-    const hasActionsReadPermission =
-      context.inputs.additionalPermissions.get("actions") === "read";
-
-    if (context.isPR && hasActionsReadPermission) {
-      // Verify the token actually has actions:read permission
-      const actuallyHasPermission = await checkActionsReadPermission(
-        process.env.ACTIONS_TOKEN || "",
-        owner,
-        repo,
-      );
-
-      if (!actuallyHasPermission) {
-        core.warning(
-          "The github_ci MCP server requires 'actions: read' permission. " +
-            "Please ensure your GitHub token has this permission. " +
-            "See: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token",
-        );
-      }
-      baseMcpConfig.mcpServers.github_ci = {
-        command: "bun",
-        args: [
-          "run",
-          `${process.env.GITHUB_ACTION_PATH}/src/mcp/github-actions-server.ts`,
-        ],
-        env: {
-          // Use workflow github token, not app token
-          GITHUB_TOKEN: process.env.ACTIONS_TOKEN,
-          REPO_OWNER: owner,
-          REPO_NAME: repo,
-          PR_NUMBER: context.entityNumber.toString(),
-          RUNNER_TEMP: process.env.RUNNER_TEMP || "/tmp",
-        },
-      };
-    }
-
-    if (hasGitHubMcpTools) {
-      baseMcpConfig.mcpServers.github = {
-        command: "docker",
-        args: [
-          "run",
-          "-i",
-          "--rm",
-          "-e",
-          "GITHUB_PERSONAL_ACCESS_TOKEN",
-          "ghcr.io/github/github-mcp-server:sha-721fd3e", // https://github.com/github/github-mcp-server/releases/tag/v0.6.0
-        ],
-        env: {
-          GITHUB_PERSONAL_ACCESS_TOKEN: githubToken,
-        },
-      };
-    }
 
     // Merge with additional MCP config if provided
     if (additionalMcpConfig && additionalMcpConfig.trim()) {
