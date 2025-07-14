@@ -1,17 +1,11 @@
 #!/usr/bin/env node
 // GitHub Comment MCP Server - Minimal server that only provides comment update functionality
-
-// Add debugging to see if the server starts
-console.error("[GitHub Comment Server] Starting server...");
-
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { GITHUB_API_URL } from "../github/api/config";
 import { Octokit } from "@octokit/rest";
-import { updateComment } from "../github/operations";
-
-console.error("[GitHub Comment Server] Imports successful");
+import { updateClaudeComment } from "../github/operations/comments/update-claude-comment";
 
 // Get repository information from environment variables
 const REPO_OWNER = process.env.REPO_OWNER;
@@ -57,27 +51,22 @@ server.tool(
         baseUrl: GITHUB_API_URL,
       });
 
-      // Create context object for the updateComment function
-      const context = {
-        repository: {
-          owner,
-          repo,
-          full_name: `${owner}/${repo}`,
-        },
-        eventName: eventName || "",
-        entityNumber: 0, // Not needed for comment update
-        isPR: eventName === "pull_request_review_comment",
-        actor: "",
-        payload: {},
-      };
+      const isPullRequestReviewComment =
+        eventName === "pull_request_review_comment";
 
-      await updateComment(octokit, context, commentId, body);
+      const result = await updateClaudeComment(octokit, {
+        owner,
+        repo,
+        commentId,
+        body,
+        isPullRequestReviewComment,
+      });
 
       return {
         content: [
           {
             type: "text",
-            text: `Successfully updated comment ${commentId}`,
+            text: JSON.stringify(result, null, 2),
           },
         ],
       };
@@ -99,20 +88,11 @@ server.tool(
 );
 
 async function runServer() {
-  console.error("[GitHub Comment Server] Creating transport...");
   const transport = new StdioServerTransport();
-  
-  console.error("[GitHub Comment Server] Connecting to transport...");
   await server.connect(transport);
-  
-  console.error("[GitHub Comment Server] Server connected successfully");
   process.on("exit", () => {
-    console.error("[GitHub Comment Server] Server shutting down...");
     server.close();
   });
 }
 
-console.error("[GitHub Comment Server] Starting runServer...");
-runServer().catch((error) => {
-  console.error("[GitHub Comment Server] Error starting server:", error);
-});
+runServer().catch(console.error);
