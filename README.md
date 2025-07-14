@@ -170,3 +170,4 @@ bun run typecheck
 This project follows the same licensing as the original Claude Code Action.# Test BuildKit dispatch
 # Test Docker Hub push
 # Fix Docker Hub repository
+# Test Docker Hub auth
