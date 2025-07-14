@@ -15,6 +15,7 @@ import { createOctokit, createInitialComment, setupBranch, configureGitAuth } fr
 import { setupClaudeAuthentication } from './claude/auth';
 import { createPromptFile } from './claude/prompt';
 import { runClaude } from './claude/runner';
+import { prepareMcpConfig } from './mcp/install-mcp-server';
 
 async function main() {
   try {
@@ -104,7 +105,7 @@ async function main() {
       branch: branchInfo.currentBranch,
       additionalMcpConfig: config.mcpConfig || '',
       claudeCommentId: claudeCommentId.toString(),
-      allowedTools: config.allowedTools || '',
+      allowedTools: config.allowedTools ? config.allowedTools.split(',').map(t => t.trim()) : [],
       context: githubContext,
     });
 
@@ -141,85 +142,6 @@ async function main() {
   }
 }
 
-async function prepareMcpConfig(options: {
-  githubToken: string;
-  owner: string;
-  repo: string;
-  branch: string;
-  additionalMcpConfig: string;
-  claudeCommentId: string;
-  allowedTools: string;
-  context: any;
-}): Promise<string> {
-  const {
-    githubToken,
-    owner,
-    repo,
-    branch,
-    additionalMcpConfig,
-    claudeCommentId,
-    allowedTools,
-    context,
-  } = options;
-
-  // Build base MCP configuration for GitHub operations
-  const baseMcpConfig = {
-    mcpServers: {
-      github_comment: {
-        command: 'npx',
-        args: ['-y', '@anthropic-ai/mcp-server-github'],
-        env: {
-          GITHUB_PERSONAL_ACCESS_TOKEN: githubToken,
-          GITHUB_REPOSITORY: `${owner}/${repo}`,
-          GITHUB_COMMENT_ID: claudeCommentId,
-        },
-      },
-      github_file_ops: {
-        command: 'npx',
-        args: ['-y', '@anthropic-ai/mcp-server-github'],
-        env: {
-          GITHUB_PERSONAL_ACCESS_TOKEN: githubToken,
-          GITHUB_REPOSITORY: `${owner}/${repo}`,
-          GITHUB_BRANCH: branch,
-        },
-      },
-    },
-  };
-
-  // Add GitHub Actions MCP server if actions permissions are enabled
-  if (context.inputs?.additionalPermissions?.includes('actions: read') && context.isPR) {
-    (baseMcpConfig.mcpServers as any)['github_ci'] = {
-      command: 'npx',
-      args: ['-y', '@anthropic-ai/mcp-server-github'],
-      env: {
-        GITHUB_PERSONAL_ACCESS_TOKEN: githubToken,
-        GITHUB_REPOSITORY: `${owner}/${repo}`,
-      },
-    };
-  }
-
-  // Merge with additional MCP configuration if provided
-  let finalMcpConfig = baseMcpConfig;
-  if (additionalMcpConfig) {
-    try {
-      const additionalConfig = JSON.parse(additionalMcpConfig);
-      // Merge the configurations (additional config takes precedence)
-      finalMcpConfig = {
-        mcpServers: {
-          ...baseMcpConfig.mcpServers,
-          ...additionalConfig.mcpServers,
-        },
-      };
-    } catch (error) {
-      logger.warn('Failed to parse additional MCP config, using base config only:', error);
-    }
-  }
-
-  const mcpConfigJson = JSON.stringify(finalMcpConfig, null, 2);
-  logger.debug('MCP configuration:', mcpConfigJson);
-
-  return mcpConfigJson;
-}
 
 // Execute main function if this file is run directly
 if (require.main === module) {
