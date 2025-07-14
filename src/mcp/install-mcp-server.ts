@@ -71,29 +71,39 @@ export async function prepareMcpConfig(
     };
 
     // Always include comment server for updating Claude comments
-    // Try local MCP server first, fallback to npm package
-    const actionPath = process.env.GITHUB_ACTION_PATH || '/app';
-    const localServerPath = `${actionPath}/src/mcp/github-comment-server.ts`;
-    
     baseMcpConfig.mcpServers.github_comment = {
-      command: "npx",
-      args: ["-y", "@anthropic-ai/mcp-server-github"],
+      command: "bun",
+      args: [
+        "run",
+        `${process.env.GITHUB_ACTION_PATH}/src/mcp/github-comment-server.ts`,
+      ],
       env: {
-        GITHUB_PERSONAL_ACCESS_TOKEN: githubToken,
-        GITHUB_REPOSITORY: `${owner}/${repo}`,
-        ...(claudeCommentId && { GITHUB_COMMENT_ID: claudeCommentId }),
+        GITHUB_TOKEN: githubToken,
+        REPO_OWNER: owner,
+        REPO_NAME: repo,
+        ...(claudeCommentId && { CLAUDE_COMMENT_ID: claudeCommentId }),
+        GITHUB_EVENT_NAME: process.env.GITHUB_EVENT_NAME || "",
+        GITHUB_API_URL: GITHUB_API_URL,
       },
     };
 
     // Include file ops server when commit signing is enabled
     if (context.inputs.useCommitSigning) {
       baseMcpConfig.mcpServers.github_file_ops = {
-        command: "npx",
-        args: ["-y", "@anthropic-ai/mcp-server-github"],
+        command: "bun",
+        args: [
+          "run",
+          `${process.env.GITHUB_ACTION_PATH}/src/mcp/github-file-ops-server.ts`,
+        ],
         env: {
-          GITHUB_PERSONAL_ACCESS_TOKEN: githubToken,
-          GITHUB_REPOSITORY: `${owner}/${repo}`,
-          GITHUB_BRANCH: branch,
+          GITHUB_TOKEN: githubToken,
+          REPO_OWNER: owner,
+          REPO_NAME: repo,
+          BRANCH_NAME: branch,
+          REPO_DIR: process.env.GITHUB_WORKSPACE || process.cwd(),
+          GITHUB_EVENT_NAME: process.env.GITHUB_EVENT_NAME || "",
+          IS_PR: process.env.IS_PR || "false",
+          GITHUB_API_URL: GITHUB_API_URL,
         },
       };
     }
@@ -118,11 +128,18 @@ export async function prepareMcpConfig(
         );
       }
       baseMcpConfig.mcpServers.github_ci = {
-        command: "npx",
-        args: ["-y", "@anthropic-ai/mcp-server-github"],
+        command: "bun",
+        args: [
+          "run",
+          `${process.env.GITHUB_ACTION_PATH}/src/mcp/github-actions-server.ts`,
+        ],
         env: {
-          GITHUB_PERSONAL_ACCESS_TOKEN: process.env.ACTIONS_TOKEN || githubToken,
-          GITHUB_REPOSITORY: `${owner}/${repo}`,
+          // Use workflow github token, not app token
+          GITHUB_TOKEN: process.env.ACTIONS_TOKEN,
+          REPO_OWNER: owner,
+          REPO_NAME: repo,
+          PR_NUMBER: context.entityNumber.toString(),
+          RUNNER_TEMP: process.env.RUNNER_TEMP || "/tmp",
         },
       };
     }

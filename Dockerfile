@@ -32,5 +32,8 @@ RUN chmod +x entrypoint.sh
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code@1.0.48
 
+# Set GITHUB_ACTION_PATH environment variable for MCP servers
+ENV GITHUB_ACTION_PATH=/app
+
 # Set the entrypoint
 ENTRYPOINT ["/app/entrypoint.sh"]
